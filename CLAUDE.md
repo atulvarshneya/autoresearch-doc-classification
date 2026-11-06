@@ -8,7 +8,7 @@ An "autoresearch" loop for optimizing an LLM classification prompt. An agent rep
 
 `program.md` is the instruction file for the agent running that loop. When you act as the optimizing agent, follow it: modify only `prompt.txt`; read only `prompt.txt`, `ledger.txt` and `runs/*.json` (never the documents in `dataset/`); and don't write rules that name specific files, tenants, amounts or dates.
 
-The current dataset (5 files, 5 classes) is a toy for developing the framework. The real use is ~100–200 multi-page documents and 30–40 classes, so design decisions (ledger size, split, metrics) should target that scale.
+The current dataset (10 labeled files, 6 classes including a catch-all `other` for documents that fit no class) is a toy for developing the framework. The real use is ~100–200 multi-page documents and 30–40 classes, so design decisions (ledger size, split, metrics) should target that scale.
 
 ## Commands
 

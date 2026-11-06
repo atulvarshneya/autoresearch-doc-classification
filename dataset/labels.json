@@ -5,6 +5,11 @@
 		{ "file": "06_Appraisal_FY2024.md", "label": "appraisal" },
 		{ "file": "08_Rent_Roll_FY2024.md", "label": "rent_roll" },
 		{ "file": "09_Lease_Example_Books_and_Gifts.md", "label": "lease" },
-		{ "file": "10_Lease_Amendment_Example_Fitness_Studio.md", "label": "lease_amendment"}
+		{ "file": "10_Lease_Amendment_Example_Fitness_Studio.md", "label": "lease_amendment"},
+		{ "file": "01_Tax_Return_FY2024.md", "label": "other" },
+		{ "file": "02_Audited_Financial_Statement_FY2024.md", "label": "other" },
+		{ "file": "03_Company_Prepared_Financials_FY2024.md", "label": "other" },
+		{ "file": "04_Debt_Schedule_FY2024.md", "label": "other" },
+		{ "file": "07_Covenant_Compliance_Certificate_FY2024.md", "label": "other" }
 	]
 }
