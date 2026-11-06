@@ -1,0 +1,11 @@
+Read program.md. I want you to act as an autonomous prompt optimization agent. 
+Your goal is to maximize the accuracy score in ledger.txt by only changing prompt.txt.
+
+Please run the following loop exactly 5 times in a row without stopping to ask me for permission:
+1. Read prompt.txt and the ledger.txt error logs to see what mistakes the current prompt is making.
+2. Formulate a hypothesis on how to make the instructions, few-shot examples, or constraints clearer for those failing classes.
+3. Edit prompt.txt with your improvements.
+4. Execute python evaluate.py in the terminal.
+5. Wait for the script to either commit your success or automatically revert your failure via Git.
+
+Begin iteration 1 now.
