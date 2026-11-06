@@ -1,0 +1,5 @@
+SYNTHETIC / FICTIONAL - Example Sunnyday Retail LLC Commercial Lease Agreement - synthetic specimen, 1 page
+
+Commercial Lease Agreement (Summary) Sunnyday Retail Center 900 Sunnyday Parkway, Suite 100, Emeryville, CA 94608 Tenant: Example Fitness Studio Landlord: Example Sunnyday Retail LLC Lease Type: Modified Gross, with Base Year Expense Stop Lease Term: This Lease shall expire on 2027-06-01. Common Area Maintenance (CAM) and Expense Reimbursement: Tenant shall pay, as additional rent, only Tenant's Pro Rata Share of increases in Common Area Maintenance charges over the Base Year amount. Based on current-year expense levels, Tenant's net effective CAM reimbursement obligation under this Lease is 66% of its Pro Rata Share. Base Rent: $4,000.00 per month Synthetic specimen - prepared for synthetic demo use only. No actual lease, tenant, or
+
+transaction is represented.
