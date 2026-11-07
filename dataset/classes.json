@@ -1,0 +1,28 @@
+{
+	"classes": [
+		{
+			"name": "operating_statement",
+			"hint": "a commercial property's periodic (typically annual) statement of rental income and operating expenses, used to compute net operating income (NOI)."
+		},
+		{
+			"name": "appraisal",
+			"hint": "a third-party professional appraisal report valuing a commercial property, typically including the appraiser's own stabilized NOI projection supporting their valuation conclusion."
+		},
+		{
+			"name": "rent_roll",
+			"hint": "a schedule listing a commercial property's individual leased suites/units, each with its tenant, square footage, current rent, and lease expiration date - distinct from 'operating_statement', which reports property-wide income/expense totals rather than a per-suite breakdown."
+		},
+		{
+			"name": "lease",
+			"hint": "one tenant's own full lease contract (or a summary of it), covering their rent and the terms governing how much of the property's common-area-maintenance (CAM)/operating expenses they're obligated to reimburse - distinct from 'rent_roll', which lists every suite's current rent at a glance but not each lease's own reimbursement terms."
+		},
+		{
+			"name": "lease_amendment",
+			"hint": "a short document restating only specific changed terms of a tenant's existing lease (e.g. 'First Amendment to Lease', 'Amendment to Lease Agreement'), referencing the original lease by date and parties rather than restating the whole contract - distinct from 'lease' (a full contract) by its own much shorter length and its explicit reference to amending a prior, already-executed lease."
+		},
+		{
+			"name": "other",
+			"hint": "any document that is not one of the categories above. Use it when the document does not fit any of the other categories' descriptions, rather than choosing the closest category; but do not use it for a document that does fit one of them."
+		}
+	]
+}

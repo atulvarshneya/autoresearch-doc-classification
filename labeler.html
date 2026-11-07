@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dataset labeler</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, sans-serif; color: #1f2328; background: #f6f8fa;
+         height: 100vh; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 18px; padding: 10px 16px; background: #fff;
+           border-bottom: 1px solid #d0d7de; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; }
+  #progress { color: #57606a; }
+  #orphans { color: #9a6700; background: #fff8c5; border: 1px solid #d4a72c; border-radius: 6px;
+             padding: 2px 8px; display: none; }
+  label.switch { display: flex; align-items: center; gap: 6px; cursor: pointer; margin-left: auto; }
+  main { flex: 1; display: flex; min-height: 0; }
+  /* Letter-page proportions (8.5 x 11): width follows the available height (viewport minus the ~46px header). */
+  #docpane { flex: 0 0 auto; width: min(calc((100vh - 46px) * 8.5 / 11), 70vw); display: flex; flex-direction: column;
+             min-width: 360px; }
+  /* Drag handle between the panels; the user's width overrides the letter-page default. */
+  #splitter { flex: none; width: 7px; cursor: col-resize; background: #f6f8fa; border-left: 1px solid #d0d7de;
+              border-right: 1px solid #d0d7de; touch-action: none; }
+  #splitter:hover, body.dragging #splitter { background: #ddf4ff; border-color: #54aeff; }
+  body.dragging { cursor: col-resize; user-select: none; }
+  #docbar { display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: #fff;
+            border-bottom: 1px solid #d0d7de; }
+  #filename { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  #doc { flex: 1; overflow: auto; padding: 16px 24px; background: #fff; }
+  #doc pre.raw { white-space: pre-wrap; word-wrap: break-word; font: 13px/1.5 ui-monospace, monospace; margin: 0; }
+  #doc table { border-collapse: collapse; margin: 8px 0; }
+  #doc th, #doc td { border: 1px solid #d0d7de; padding: 4px 8px; text-align: left; vertical-align: top; }
+  #doc th { background: #f6f8fa; }
+  #side { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 280px; padding: 12px 16px; gap: 12px; overflow: auto; }
+  #side h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: #57606a; margin: 0; }
+  #classes { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px 10px; }
+  #classes label { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 6px;
+                   cursor: pointer; word-break: break-word; }
+  #classes label:hover { background: #eaeef2; }
+  #classes label.checked { background: #ddf4ff; font-weight: 600; }
+  #classes label.unknown { color: #9a6700; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button { font: inherit; padding: 5px 12px; border: 1px solid #d0d7de; border-radius: 6px; background: #f6f8fa; cursor: pointer; }
+  button:hover:not(:disabled) { background: #eaeef2; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.nav { background: #e6f4ea; color: #1a5c2e; border-color: #a8d5b5; }
+  button.nav:hover:not(:disabled) { background: #d2ebd9; }
+  button.soft-blue { background: #e7f0fb; color: #1d4f8a; border-color: #a9c6ea; }
+  button.soft-blue:hover:not(:disabled) { background: #d4e4f7; }
+  input[type=text], textarea { font: inherit; padding: 4px 8px; border: 1px solid #d0d7de; border-radius: 6px; width: 100%; }
+  textarea { resize: vertical; min-height: 5.5em; }
+  .addclass { display: flex; flex-direction: column; gap: 6px; }
+  .addclass button { align-self: flex-start; }
+  #status { min-height: 20px; }
+  body.busy #classes label { cursor: progress; }
+  #status.ok { color: #1a7f37; }
+  #status.err { color: #cf222e; }
+  .seg button { border-radius: 0; margin-left: -1px; padding: 3px 10px; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; }
+  .seg button.on { background: #ddf4ff; border-color: #54aeff; position: relative; }
+  .hint { color: #57606a; font-size: 12px; }
+  #done { display: none; padding: 40px; text-align: center; font-size: 16px; color: #57606a; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Dataset labeler</h1>
+  <span id="progress"></span>
+  <span id="orphans"></span>
+  <label class="switch"><input type="checkbox" id="skip"> Skip already-labeled files</label>
+</header>
+<main>
+  <section id="docpane">
+    <div id="docbar">
+      <span id="filename"></span>
+      <span class="seg"><button id="viewRendered">Rendered</button><button id="viewRaw">Raw</button></span>
+    </div>
+    <div id="doc"></div>
+    <div id="done"></div>
+  </section>
+  <div id="splitter" title="Drag to resize the document panel. Double-click to reset."></div>
+  <aside id="side">
+    <h2>Label</h2>
+    <div id="classes"></div>
+    <div id="status"></div>
+    <div class="row">
+      <button id="prev" class="nav">&larr; Prev</button>
+      <button id="next" class="nav">Next &rarr;</button>
+      <button id="clear" class="soft-blue">Clear label</button>
+    </div>
+    <div class="hint">Labels are saved as soon as you pick one. Hover a class to see its hint. Keys: &larr; / &rarr; to move between files.</div>
+    <h2>Add class</h2>
+    <div class="addclass">
+      <input type="text" id="newClass" placeholder="Class name, e.g. guaranty_agreement">
+      <textarea id="newHint" rows="4" placeholder="Hint (required): describe this document type so an LLM can recognize it, and how it differs from similar classes."></textarea>
+      <button id="addClass">Add class</button>
+    </div>
+  </aside>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let state = null;      // {classes, files, orphans} from the server
+let queue = [];        // file names to visit, rebuilt only on load or when the skip switch changes
+let pos = 0;
+let view = localStorage.getItem("labeler.view") || "rendered";
+let currentDoc = null;
+let busy = false;      // true while a save is in flight: navigation, labeling and class changes are locked
+const SAVE_TIMEOUT_MS = 15000;
+
+async function api(path, body) {
+  const opts = body === undefined ? {} :
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  // Saves time out, so a server that never answers can't leave the page locked.
+  if (body !== undefined) opts.signal = AbortSignal.timeout(SAVE_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(path, opts);
+  } catch (e) {
+    throw new Error(e.name === "TimeoutError" ? "server did not respond in time" : "server unreachable");
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function labelOf(name) {
+  const f = state.files.find((f) => f.name === name);
+  return f ? f.label : null;
+}
+
+function buildQueue(keepFile) {
+  const skip = $("skip").checked;
+  queue = state.files.filter((f) => !skip || !f.label).map((f) => f.name);
+  const i = keepFile ? queue.indexOf(keepFile) : -1;
+  pos = i >= 0 ? i : 0;
+}
+
+function setStatus(text, cls) {
+  $("status").textContent = text;
+  $("status").className = cls || "";
+}
+
+function renderProgress() {
+  const labeled = state.files.filter((f) => f.label).length;
+  const where = pos < queue.length ? `File ${pos + 1} of ${queue.length}` : `${queue.length} files`;
+  $("progress").textContent = `${where} · ${labeled} of ${state.files.length} labeled`;
+  const o = $("orphans");
+  if (state.orphans.length) {
+    o.style.display = "inline";
+    o.textContent = `${state.orphans.length} label(s) in labels.json for missing files`;
+    o.title = state.orphans.join("\n");
+  } else {
+    o.style.display = "none";
+  }
+}
+
+function renderClasses() {
+  const box = $("classes");
+  box.innerHTML = "";
+  const name = queue[pos];
+  const current = name ? labelOf(name) : null;
+  for (const c of state.classes) {
+    const lab = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "cls";
+    input.value = c.name;
+    input.checked = c.name === current;
+    input.disabled = busy || !name;
+    input.addEventListener("change", () => saveLabel(c.name));
+    lab.append(input, document.createTextNode(c.name + (c.unknown ? " (not in classes.json)" : "")));
+    lab.title = c.hint || "(no hint)";
+    if (input.checked) lab.classList.add("checked");
+    if (c.unknown) lab.classList.add("unknown");
+    box.append(lab);
+  }
+}
+
+function renderDoc() {
+  const doc = $("doc");
+  if (!currentDoc) { doc.innerHTML = ""; return; }
+  if (currentDoc.error) {
+    doc.innerHTML = "";
+    const p = document.createElement("p");
+    p.style.color = "#cf222e";
+    p.textContent = currentDoc.error;
+    doc.append(p);
+  } else if (view === "raw") {
+    const pre = document.createElement("pre");
+    pre.className = "raw";
+    pre.textContent = currentDoc.raw;
+    doc.innerHTML = "";
+    doc.append(pre);
+  } else {
+    doc.innerHTML = currentDoc.html;  // server-rendered markdown with raw HTML neutralized
+  }
+  $("viewRendered").classList.toggle("on", view === "rendered");
+  $("viewRaw").classList.toggle("on", view === "raw");
+}
+
+async function show() {
+  setStatus("");
+  renderProgress();
+  const done = pos >= queue.length;
+  $("doc").style.display = done ? "none" : "block";
+  $("done").style.display = done ? "block" : "none";
+  updateControls();
+  if (done) {
+    $("filename").textContent = "";
+    $("done").textContent = queue.length ? "All files done." :
+      ($("skip").checked ? "Every file is already labeled." : "No files in dataset/files/.");
+    currentDoc = null;
+    renderClasses();
+    return;
+  }
+  const name = queue[pos];
+  localStorage.setItem("labeler.lastFile", name);
+  $("filename").textContent = name;
+  $("filename").title = name;
+  renderClasses();
+  try {
+    currentDoc = await api(`/api/file?name=${encodeURIComponent(name)}`);
+  } catch (e) {
+    currentDoc = { error: `Could not load ${name}: ${e.message}` };
+  }
+  if (queue[pos] !== name) return;  // user moved on while loading
+  renderDoc();
+  $("doc").scrollTop = 0;
+}
+
+function updateControls() {
+  const done = pos >= queue.length;
+  $("prev").disabled = busy || pos === 0;
+  $("next").disabled = busy || done;
+  $("clear").disabled = busy || done;
+  $("skip").disabled = busy;
+  $("addClass").disabled = busy;
+  for (const input of document.querySelectorAll("#classes input")) input.disabled = busy || done;
+  document.body.classList.toggle("busy", busy);
+}
+
+// Runs one save at a time with the controls locked until the server answers (or the save times out).
+async function withLock(work) {
+  if (busy) return;
+  busy = true;
+  updateControls();
+  try {
+    await work();
+  } finally {
+    busy = false;
+    renderClasses();   // reflects the saved state, or reverts the radio if the save failed
+    renderProgress();
+    updateControls();
+  }
+}
+
+function saveLabel(label) {
+  const name = queue[pos];
+  return withLock(async () => {
+    setStatus("Saving…");
+    try {
+      state = await api("/api/label", { file: name, label });
+      setStatus(label ? `Saved ✓  ${name} → ${label}` : `Cleared label for ${name}`, "ok");
+    } catch (e) {
+      setStatus(`Not saved: ${e.message}`, "err");
+    }
+  });
+}
+
+function move(delta) {
+  if (busy) return;
+  const target = pos + delta;
+  if (target < 0 || target > queue.length) return;
+  pos = target;
+  show();
+}
+
+$("prev").addEventListener("click", () => move(-1));
+$("next").addEventListener("click", () => move(1));
+$("clear").addEventListener("click", () => saveLabel(null));
+$("skip").addEventListener("change", () => {
+  localStorage.setItem("labeler.skip", $("skip").checked ? "1" : "0");
+  buildQueue(queue[pos]);
+  show();
+});
+$("viewRendered").addEventListener("click", () => { view = "rendered"; localStorage.setItem("labeler.view", view); renderDoc(); });
+$("viewRaw").addEventListener("click", () => { view = "raw"; localStorage.setItem("labeler.view", view); renderDoc(); });
+$("addClass").addEventListener("click", addClass);
+async function addClass() {
+  const name = $("newClass").value.trim();
+  const hint = $("newHint").value.trim();
+  if (!name) { setStatus("Enter a class name.", "err"); $("newClass").focus(); return; }
+  if (!hint) { setStatus("A hint is required: describe the class so an LLM can recognize it.", "err"); $("newHint").focus(); return; }
+  await withLock(async () => {
+    setStatus("Saving…");
+    try {
+      state = await api("/api/classes", { name, hint });
+      $("newClass").value = "";
+      $("newHint").value = "";
+      setStatus(`Added class ${name}. Also add it and its hint to prompt.txt.`, "ok");
+    } catch (e) {
+      setStatus(`Not added: ${e.message}`, "err");
+    }
+  });
+}
+
+document.addEventListener("keydown", (e) => {
+  if ((e.target.tagName === "INPUT" && e.target.type === "text") || e.target.tagName === "TEXTAREA") return;
+  if (e.key === "ArrowLeft") { e.preventDefault(); move(-1); }
+  if (e.key === "ArrowRight") { e.preventDefault(); move(1); }
+});
+
+// --- resizable document panel ---
+const MIN_DOC_PX = 360, MIN_SIDE_PX = 300;
+let dragStart = null;  // {x, width} while dragging the splitter
+
+function savedDocWidth() {
+  const w = parseFloat(localStorage.getItem("labeler.docWidth"));
+  return Number.isFinite(w) ? w : null;
+}
+function applyDocWidth(w) {
+  // null = the CSS default (letter-page proportions); otherwise clamp so neither panel gets too narrow.
+  $("docpane").style.width = w === null ? "" :
+    `${Math.max(MIN_DOC_PX, Math.min(w, window.innerWidth - MIN_SIDE_PX))}px`;
+}
+$("splitter").addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  $("splitter").setPointerCapture(e.pointerId);
+  dragStart = { x: e.clientX, width: $("docpane").getBoundingClientRect().width };
+  document.body.classList.add("dragging");
+});
+$("splitter").addEventListener("pointermove", (e) => {
+  if (dragStart) applyDocWidth(dragStart.width + e.clientX - dragStart.x);
+});
+function endDrag(e) {
+  if (!dragStart) return;
+  dragStart = null;
+  document.body.classList.remove("dragging");
+  if ($("splitter").hasPointerCapture(e.pointerId)) $("splitter").releasePointerCapture(e.pointerId);
+  localStorage.setItem("labeler.docWidth", String(Math.round($("docpane").getBoundingClientRect().width)));
+}
+$("splitter").addEventListener("pointerup", endDrag);
+$("splitter").addEventListener("pointercancel", endDrag);
+$("splitter").addEventListener("dblclick", () => {
+  localStorage.removeItem("labeler.docWidth");
+  applyDocWidth(null);
+});
+window.addEventListener("resize", () => { const w = savedDocWidth(); if (w !== null) applyDocWidth(w); });
+applyDocWidth(savedDocWidth());
+
+(async function init() {
+  try {
+    state = await api("/api/state");
+  } catch (e) {
+    setStatus(`Could not load state: ${e.message}`, "err");
+    return;
+  }
+  $("skip").checked = localStorage.getItem("labeler.skip") === "1";
+  buildQueue(localStorage.getItem("labeler.lastFile"));
+  show();
+})();
+</script>
+</body>
+</html>
