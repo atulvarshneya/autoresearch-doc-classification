@@ -107,6 +107,22 @@ def git_commit(message):
     else:
         print("Nothing new to commit (prompt.txt and prompt_classes.json are unchanged in git).")
 
+def disable_push_to_origin():
+    # A clone's `origin` points at the template repo on GitHub. Block pushes to it, so the optimized
+    # prompt.txt and commits about the user's classes never go there. Fetching (git pull) still works.
+    # Only touch an untouched origin: if the user already set their own push URL, respect it.
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=BASE_DIR, capture_output=True, text=True)
+    fetch_url = git("remote", "get-url", "origin")
+    if fetch_url.returncode != 0:
+        return  # not a git repo, or no remote named origin
+    push_url = git("remote", "get-url", "--push", "origin").stdout.strip()
+    if push_url == "DISABLED" or push_url != fetch_url.stdout.strip():
+        return
+    if git("remote", "set-url", "--push", "origin", "DISABLED").returncode == 0:
+        print(f"Disabled pushing to origin ({push_url}); `git pull` still works.")
+        print("  To push to a repository of your own: git remote set-url --push origin <your-repo-url>")
+
 def main():
     parser = argparse.ArgumentParser(description="Create prompt.txt from prompt_template.txt and dataset/classes.json.")
     parser.add_argument("--force", action="store_true",
@@ -138,6 +154,7 @@ def main():
         print(f"Archived the previous ledger.txt / runs/ to {os.path.relpath(archived, BASE_DIR)}")
     n_labels = warn_about_labels(class_names)
     git_commit(f"Initialize prompt.txt for {len(classes)} classes")
+    disable_push_to_origin()
 
     print("\nNext steps:")
     if not n_labels or n_labels < 2:

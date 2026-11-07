@@ -5,3 +5,10 @@ __pycache__/
 ledger.txt
 runs/
 archive/
+
+# Your documents stay local; .gitkeep keeps the empty folder in the template
+dataset/files/*
+!dataset/files/.gitkeep
+
+# Temporary file from the labeler's atomic writes, if a save is interrupted
+*.tmp
