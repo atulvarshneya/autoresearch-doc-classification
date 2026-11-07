@@ -28,6 +28,21 @@ ITERATION_PROMPT='Read program.md and follow its rules. Do exactly ONE iteration
 
 ledger_lines() { [[ -f "$LEDGER" ]] && wc -l < "$LEDGER" | tr -d ' ' || echo 0; }
 
+# Succeeds when the best kept run for the current data/config already has held-out macro-F1 = 1.0.
+# A prompt is kept only if it beats the best score, so after that no iteration can ever be kept.
+ceiling_reached() {
+  [[ -f "$LEDGER" ]] || return 1
+  python - "$LEDGER" <<'EOF'
+import json, sys
+entries = [json.loads(l) for l in open(sys.argv[1]) if l.strip().startswith("{")]
+if not entries:
+    sys.exit(1)
+fp = entries[-1]["fingerprint"]
+best = max((e["holdout"]["macro_f1"] for e in entries if e["fingerprint"] == fp and e["decision"] == "kept"), default=0.0)
+sys.exit(0 if best >= 1.0 - 1e-9 else 1)
+EOF
+}
+
 # Baseline: the loop needs a scored starting point and errors to learn from.
 if [[ "$(ledger_lines)" -eq 0 ]]; then
   echo "=== Baseline: scoring the starting prompt ==="
@@ -35,7 +50,15 @@ if [[ "$(ledger_lines)" -eq 0 ]]; then
 fi
 
 missed=0
+done_iters=0
 for ((i = 1; i <= ITERATIONS; i++)); do
+  if ceiling_reached; then
+    echo
+    echo "Held-out macro-F1 is already 1.0, so no prompt change can be kept; stopping early."
+    echo "(To make further progress, label more documents: that grows the held-out set.)"
+    break
+  fi
+  done_iters=$i
   echo
   echo "=== Iteration $i of $ITERATIONS ==="
   before="$(ledger_lines)"
@@ -61,7 +84,7 @@ for ((i = 1; i <= ITERATIONS; i++)); do
 done
 
 echo
-echo "=== Done: $ITERATIONS iteration(s) ==="
+echo "=== Done: $done_iters of $ITERATIONS iteration(s) run ==="
 python - "$LEDGER" <<'EOF'
 import json, sys
 entries = [json.loads(l) for l in open(sys.argv[1]) if l.strip().startswith("{")]
