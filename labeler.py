@@ -1,6 +1,7 @@
 """Local web app for labeling the documents in dataset/files/.
 
-Run:  python labeler.py [--port 8765]   then open http://127.0.0.1:8765
+Run:  python labeler.py [--port 8765] [--host 127.0.0.1]   then open http://127.0.0.1:8765
+      (--host 0.0.0.0 makes it reachable from other machines; there is no login, so use a trusted network)
 Every label change is saved to dataset/labels.json immediately (atomic write), so you can stop at any time.
 """
 import os
@@ -176,9 +177,18 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description="Label the documents in dataset/files/.")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--host", default="127.0.0.1",
+                        help="address to listen on (default 127.0.0.1, this machine only; "
+                             "0.0.0.0 = all interfaces, reachable from other machines)")
     args = parser.parse_args()
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    print(f"Labeler running at http://127.0.0.1:{args.port}  (Ctrl+C to stop)")
+    server = ThreadingHTTPServer((args.host, args.port), Handler)
+    if args.host in ("127.0.0.1", "localhost", "::1"):
+        print(f"Labeler running at http://127.0.0.1:{args.port}  (Ctrl+C to stop)")
+    else:
+        shown = "<this-machine's-IP>" if args.host in ("0.0.0.0", "::") else args.host
+        print(f"Labeler running at http://{shown}:{args.port}  (Ctrl+C to stop)")
+        print("WARNING: there is no login. Anyone who can reach this address can change "
+              "labels.json and classes.json. Use only on a trusted network.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

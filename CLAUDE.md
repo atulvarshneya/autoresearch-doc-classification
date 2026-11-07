@@ -22,7 +22,7 @@ The real use is ~100–200 multi-page documents and 30–40 classes, so design d
 
 ```bash
 python evaluate.py   # score prompt.txt, write ledger.txt + runs/<run_id>.json, then auto-commit or auto-revert prompt.txt
-python labeler.py    # labeling web app at http://127.0.0.1:8765 (--port to change)
+python labeler.py    # labeling web app at http://127.0.0.1:8765 (--port to change; --host 0.0.0.0 to allow other machines, no auth)
 python INITIALIZE.py # create prompt.txt from prompt_template.txt + dataset/classes.json (refuses if prompt.txt exists)
 python INITIALIZE.py --force   # restart after changing the class set: archive ledger/runs, regenerate + commit prompt.txt
 ./run_loop.sh 20     # unattended loop: baseline if needed, then one fresh `claude -p` session per iteration
