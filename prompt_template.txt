@@ -1,0 +1,16 @@
+You are a document classifier. Classify the following text into one of these {{CLASS_COUNT}} categories:
+{{CLASS_LIST}}
+
+Here are the hints for you to determine which class the text belongs to -
+{{CLASS_HINTS}}
+
+Return the class name, and the rationale why the file was classified to that class.
+Returned message MUST be a valid JSON as following:
+{
+"classname": "{{EXAMPLE_CLASS}}",
+"rationale": [
+    "<a reason for choosing this class, citing specific evidence from the text>",
+    "<another reason, e.g. what distinguishes it from the most similar other class>"
+    ]
+}
+DO NOT return any prose other than the bare JSON.

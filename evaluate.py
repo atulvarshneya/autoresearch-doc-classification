@@ -33,8 +33,10 @@ RESPONSE_SCHEMA = {
 
 DATASET_DIR = os.path.join(BASE_DIR, "dataset")
 LABELS_FILE = os.path.join(DATASET_DIR, "labels.json")
+CLASSES_FILE = os.path.join(DATASET_DIR, "classes.json")
 DOCUMENTS_DIR = os.path.join(DATASET_DIR, "files")
 PROMPT_FILE = "prompt.txt"
+PROMPT_CLASSES_FILE = "prompt_classes.json"  # written by INITIALIZE.py: the class set prompt.txt was built for
 LEDGER_FILE = "ledger.txt"    # one compact JSON summary line per run; the agent reads all of it
 RUNS_DIR = "runs"             # runs/<run_id>.json: full detail for one run
 
@@ -229,11 +231,32 @@ def classify(prompt, items, split_name):
                         "correct": correct, "rationale": reply["rationale"]})
     return results
 
+def check_setup(dataset):
+    # Stop before any API call if prompt.txt is missing or was built for a different set of classes.
+    # Changing the class set means restarting the whole process with INITIALIZE.py --force.
+    if not os.path.exists(PROMPT_FILE) or not os.path.exists(PROMPT_CLASSES_FILE):
+        raise SystemExit("prompt.txt has not been created yet. Create your classes with `python labeler.py`, "
+                         "then run `python INITIALIZE.py`.")
+    with open(PROMPT_CLASSES_FILE, "r", encoding="utf-8") as f:
+        prompt_classes = set(json.load(f)["classes"])
+    with open(CLASSES_FILE, "r", encoding="utf-8") as f:
+        current = {c["name"] if isinstance(c, dict) else c for c in json.load(f).get("classes", [])}
+    if current != prompt_classes:
+        added, removed = sorted(current - prompt_classes), sorted(prompt_classes - current)
+        raise SystemExit("The set of classes in dataset/classes.json has changed since prompt.txt was created"
+                         f" (added: {', '.join(added) or 'none'}; removed: {', '.join(removed) or 'none'}).\n"
+                         "Changing the classes means restarting the whole process: `python INITIALIZE.py --force`.")
+    unknown = sorted({item["label"] for item in dataset} - prompt_classes)
+    if unknown:
+        raise SystemExit(f"labels.json uses classes that prompt.txt was not built for: {', '.join(unknown)}. "
+                         "Fix those labels in the labeler, or restart with `python INITIALIZE.py --force`.")
+
 def main():
+    dataset = load_dataset()
+    check_setup(dataset)
     with open(PROMPT_FILE, "r", encoding="utf-8") as f:
         prompt = f.read().strip()
 
-    dataset = load_dataset()
     if len(dataset) < 2:
         raise SystemExit("Need at least 2 labeled files to form a train and a held-out split.")
     train_items, holdout_items = split_dataset(dataset)
@@ -316,7 +339,8 @@ def main():
     if improved:
         print("🎉 Improvement found! Committing changes.")
         subprocess.run(["git", "add", PROMPT_FILE])
-        subprocess.run(["git", "commit", "-m", f"Improve held-out macro-F1 to {holdout_f1:.4f}"])
+        # "-- PROMPT_FILE" commits only prompt.txt, never anything else that happens to be staged.
+        subprocess.run(["git", "commit", "-m", f"Improve held-out macro-F1 to {holdout_f1:.4f}", "--", PROMPT_FILE])
     else:
         print("❌ No improvement. Reverting prompt back to baseline.")
         subprocess.run(["git", "checkout", "HEAD", "--", PROMPT_FILE])

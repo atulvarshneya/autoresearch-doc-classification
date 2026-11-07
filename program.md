@@ -4,7 +4,8 @@ Optimize the system prompt in `prompt.txt` to achieve the highest possible class
 # System Constraints
 - You are ONLY allowed to modify `prompt.txt`.
 - You may read `prompt.txt`, `ledger.txt`, and the run detail files in `runs/`. Do not read the documents in `dataset/`.
-- Do NOT modify `evaluate.py`, `program.md`, `ledger.txt`, or anything in `runs/`.
+- Do NOT modify `evaluate.py`, `program.md`, `ledger.txt`, `prompt_classes.json`, or anything in `runs/`. Do NOT run `INITIALIZE.py` or `labeler.py`.
+- The set of classes is fixed. You may freely reword, restructure, and extend the prompt, including each class's description, but every class name must stay spelled exactly as it is. Do not add, remove, or rename classes: predictions are scored against these exact names.
 - You must review `ledger.txt` before every attempt to see what strategies failed or succeeded.
 
 # How scoring works

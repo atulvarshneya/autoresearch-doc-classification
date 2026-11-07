@@ -298,7 +298,7 @@ async function addClass() {
       state = await api("/api/classes", { name, hint });
       $("newClass").value = "";
       $("newHint").value = "";
-      setStatus(`Added class ${name}. Also add it and its hint to prompt.txt.`, "ok");
+      setStatus(`Added class ${name}. If prompt.txt already exists, changing the classes means restarting: python INITIALIZE.py --force`, "ok");
     } catch (e) {
       setStatus(`Not added: ${e.message}`, "err");
     }

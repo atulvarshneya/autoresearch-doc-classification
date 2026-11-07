@@ -1,2 +1,7 @@
 .env
 __pycache__/
+
+# Experiment records written by evaluate.py / INITIALIZE.py (local only)
+ledger.txt
+runs/
+archive/
