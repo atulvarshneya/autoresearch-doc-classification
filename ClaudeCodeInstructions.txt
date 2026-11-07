@@ -1,11 +1,12 @@
-Read program.md. I want you to act as an autonomous prompt optimization agent. 
-Your goal is to maximize the accuracy score in ledger.txt by only changing prompt.txt.
+Read program.md and follow it exactly. It is the authority on what you may read, edit, and run, and on how prompts are scored.
 
-Please run the following loop exactly 5 times in a row without stopping to ask me for permission:
-1. Read prompt.txt and the ledger.txt error logs to see what mistakes the current prompt is making.
-2. Formulate a hypothesis on how to make the instructions, few-shot examples, or constraints clearer for those failing classes.
-3. Edit prompt.txt with your improvements.
-4. Execute python evaluate.py in the terminal.
-5. Wait for the script to either commit your success or automatically revert your failure via Git.
+Act as an autonomous prompt-optimization agent. Your goal is to raise the held-out macro-F1 that evaluate.py reports, by changing only prompt.txt.
 
-Begin iteration 1 now.
+If ledger.txt does not exist or is empty, first run `python evaluate.py` once to get a baseline score.
+
+Then run the iteration loop from program.md 5 times in a row, without stopping to check with me between iterations. In each iteration:
+1. Review ledger.txt (all lines: earlier prompt diffs show what was already tried) and the runs/ detail file named in its newest line (the misclassified train documents and the model's rationale for each).
+2. Form one hypothesis about why those mistakes happen, and edit prompt.txt to address it. Improve the class descriptions in general terms. If you add examples, invent them; never copy text, names, or numbers from the train errors.
+3. Run `python evaluate.py` once. It keeps (commits) or reverts prompt.txt by itself; do not run git yourself.
+
+After the 5th iteration, stop and give me a short summary: for each iteration, what you changed, the held-out macro-F1, and whether it was kept or reverted; then the best score reached.

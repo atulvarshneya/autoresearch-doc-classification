@@ -25,7 +25,15 @@ python evaluate.py   # score prompt.txt, write ledger.txt + runs/<run_id>.json, 
 python labeler.py    # labeling web app at http://127.0.0.1:8765 (--port to change)
 python INITIALIZE.py # create prompt.txt from prompt_template.txt + dataset/classes.json (refuses if prompt.txt exists)
 python INITIALIZE.py --force   # restart after changing the class set: archive ledger/runs, regenerate + commit prompt.txt
+./run_loop.sh 20     # unattended loop: baseline if needed, then one fresh `claude -p` session per iteration
 ```
+
+**Running the optimization loop:**
+- **Unattended:** `run_loop.sh` runs a baseline `evaluate.py` if the ledger is empty, then one non-interactive Claude Code session per iteration. It allows only `Read`, `Edit(prompt.txt)` and `Bash(python evaluate.py)`.
+- **Safety checks:** it stops if a session errors or if two iterations in a row don't run the evaluator. It warns if an iteration left `prompt.txt` unchanged, which can mean the edit rule blocked the agent; `EDIT_RULE=Edit` loosens it.
+- **Model:** `MODEL=` picks the agent's model.
+- **Working folder:** it `cd`s to its own folder, so it is safe to call from anywhere.
+- **Interactive:** paste `ClaudeCodeInstructions.txt` into a Claude Code session opened in the repo. It defers to `program.md` and runs 5 iterations.
 
 ## Starting prompt and the class set
 
